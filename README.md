@@ -30,4 +30,23 @@ visualised in a Power BI dashboard.
 - Key join field: collision_index
 
 ## Status
-Work in progress — SQL analysis and Power BI dashboard being built daily.
+Work in progress - SQL analysis and Power BI dashboard being built daily.
+
+## SQL Queries - Progress
+
+- [x] Section 1: Data Exploration
+- [ ] Section 2: Temporal Analysis
+- [ ] Section 3: Environmental Conditions
+- [ ] Section 4: Multi-table Joins
+- [ ] Section 5: Vehicle and Driver Risk Analysis
+- [ ] Section 6: Window Functions and Rankings
+- [ ] Section 7: Summary Findings
+
+## Key Findings So Far
+
+- Dataset covers 48,472 collisions, 60,991 casualties, and 87,805 
+  vehicles across January to May 2025
+- 1.4% of collisions were fatal, 24.7% serious, and 73.9% slight
+- 66.6% of collisions occurred in urban areas, 33.4% in rural areas
+- Zero missing values across all key analytical columns confirming 
+  the dataset is clean and ready for analysis
