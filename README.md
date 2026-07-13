@@ -35,7 +35,7 @@ Work in progress - SQL analysis and Power BI dashboard being built daily.
 ## SQL Queries - Progress
 
 - [x] Section 1: Data Exploration
-- [ ] Section 2: Temporal Analysis
+- [x] Section 2: Temporal Analysis
 - [ ] Section 3: Environmental Conditions
 - [ ] Section 4: Multi-table Joins
 - [ ] Section 5: Vehicle and Driver Risk Analysis
@@ -50,3 +50,10 @@ Work in progress - SQL analysis and Power BI dashboard being built daily.
 - 66.6% of collisions occurred in urban areas, 33.4% in rural areas
 - Zero missing values across all key analytical columns confirming 
   the dataset is clean and ready for analysis
+- Friday is the most common day for collisions overall while Sunday 
+  shows a higher proportion of fatal collisions
+- The evening rush hour between 4pm and 6pm sees the highest volume 
+  of collisions across all severity levels
+- Late night hours between 11pm and 3am show a disproportionately 
+  high fatal rate despite lower overall collision volumes
+- March has the highest collision count of the five months covered
