@@ -36,7 +36,7 @@ Work in progress - SQL analysis and Power BI dashboard being built daily.
 
 - [x] Section 1: Data Exploration
 - [x] Section 2: Temporal Analysis
-- [ ] Section 3: Environmental Conditions
+- [x] Section 3: Environmental Conditions
 - [ ] Section 4: Multi-table Joins
 - [ ] Section 5: Vehicle and Driver Risk Analysis
 - [ ] Section 6: Window Functions and Rankings
@@ -57,3 +57,13 @@ Work in progress - SQL analysis and Power BI dashboard being built daily.
 - Late night hours between 11pm and 3am show a disproportionately 
   high fatal rate despite lower overall collision volumes
 - March has the highest collision count of the five months covered
+- Collisions on roads with 60mph and 70mph speed limits have 
+  significantly higher fatal rates than urban 30mph roads despite 
+  lower collision volumes
+- Darkness with no street lighting produces a disproportionately 
+  high fatal rate compared to daylight collisions
+- The majority of collisions occur in fine weather conditions, 
+  however fog and adverse weather show elevated fatal rates
+- Dry road surfaces account for the majority of collisions, 
+  suggesting driver behaviour rather than road conditions is 
+  the primary risk factor in most cases
