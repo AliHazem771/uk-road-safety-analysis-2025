@@ -165,3 +165,107 @@ GROUP BY day_of_week, hour_of_day
 HAVING COUNT(*) >= 50
 ORDER BY fatal_collisions DESC
 LIMIT 15;
+
+-- ============================================================
+-- SECTION 3: ENVIRONMENTAL CONDITIONS ANALYSIS
+-- What conditions are most associated with serious casualties?
+-- Completing Business Question 1
+-- ============================================================
+
+-- 3.1 Collision severity by weather conditions
+-- 1=Fine no wind, 2=Raining no wind, 3=Snowing no wind,
+-- 4=Fine with wind, 5=Raining with wind, 6=Snowing with wind,
+-- 7=Fog or mist, 8=Other, 9=Unknown, -1=Data missing
+SELECT
+    CASE weather_conditions
+        WHEN 1 THEN 'Fine - No Wind'
+        WHEN 2 THEN 'Raining - No Wind'
+        WHEN 3 THEN 'Snowing - No Wind'
+        WHEN 4 THEN 'Fine - With Wind'
+        WHEN 5 THEN 'Raining - With Wind'
+        WHEN 6 THEN 'Snowing - With Wind'
+        WHEN 7 THEN 'Fog or Mist'
+        WHEN 8 THEN 'Other'
+        ELSE 'Unknown'
+    END AS weather,
+    COUNT(*) AS total_collisions,
+    SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) AS fatal,
+    SUM(CASE WHEN collision_severity = 2 THEN 1 ELSE 0 END) AS serious,
+    ROUND(SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct
+FROM collisions
+WHERE weather_conditions NOT IN (-1, 9)
+GROUP BY weather_conditions
+ORDER BY fatal_rate_pct DESC;
+
+-- 3.2 Collision severity by light conditions
+-- 1=Daylight, 4=Darkness lights lit, 5=Darkness lights unlit,
+-- 6=Darkness no lighting, 7=Darkness lighting unknown
+SELECT
+    CASE light_conditions
+        WHEN 1 THEN 'Daylight'
+        WHEN 4 THEN 'Darkness - Lights Lit'
+        WHEN 5 THEN 'Darkness - Lights Unlit'
+        WHEN 6 THEN 'Darkness - No Lighting'
+        WHEN 7 THEN 'Darkness - Lighting Unknown'
+        ELSE 'Unknown'
+    END AS light_condition,
+    COUNT(*) AS total_collisions,
+    SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) AS fatal,
+    SUM(CASE WHEN collision_severity = 2 THEN 1 ELSE 0 END) AS serious,
+    ROUND(SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct
+FROM collisions
+WHERE light_conditions != -1
+GROUP BY light_conditions
+ORDER BY fatal_rate_pct DESC;
+
+-- 3.3 Collision severity by speed limit
+-- Shows relationship between speed limit and fatal outcomes
+SELECT
+    speed_limit,
+    COUNT(*) AS total_collisions,
+    SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) AS fatal,
+    SUM(CASE WHEN collision_severity = 2 THEN 1 ELSE 0 END) AS serious,
+    SUM(CASE WHEN collision_severity = 3 THEN 1 ELSE 0 END) AS slight,
+    ROUND(SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct,
+    ROUND(SUM(CASE WHEN collision_severity IN (1,2) THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS serious_or_fatal_pct
+FROM collisions
+WHERE speed_limit > 0
+GROUP BY speed_limit
+ORDER BY speed_limit;
+
+-- 3.4 Road surface conditions and severity
+-- 1=Dry, 2=Wet or damp, 3=Snow, 4=Frost or ice,
+-- 5=Flood, 6=Oil or diesel, 7=Mud, -1=Data missing
+SELECT
+    CASE road_surface_conditions
+        WHEN 1 THEN 'Dry'
+        WHEN 2 THEN 'Wet or Damp'
+        WHEN 3 THEN 'Snow'
+        WHEN 4 THEN 'Frost or Ice'
+        WHEN 5 THEN 'Flood'
+        WHEN 6 THEN 'Oil or Diesel'
+        WHEN 7 THEN 'Mud'
+        ELSE 'Unknown'
+    END AS road_surface,
+    COUNT(*) AS total_collisions,
+    SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) AS fatal,
+    ROUND(SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct
+FROM collisions
+WHERE road_surface_conditions != -1
+GROUP BY road_surface_conditions
+ORDER BY fatal_rate_pct DESC;
+
+-- 3.5 Combined risk profile
+-- Weather and light conditions combined to identify highest risk scenarios
+SELECT
+    CASE weather_conditions
+        WHEN 1 THEN 'Fine'
+        WHEN 2 THEN 'Raining'
+        WHEN 4 THEN 'Fine with Wind'
+        WHEN 5 THEN 'Raining with Wind'
+        WHEN 7 THEN 'Fog or Mist'
+        ELSE 'Other'
+    END AS weather,
+    CASE light_conditions
+        WHEN 1 THEN 'Daylight'
+        WHEN 4 THEN
