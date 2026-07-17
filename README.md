@@ -37,7 +37,7 @@ Work in progress - SQL analysis and Power BI dashboard being built daily.
 - [x] Section 1: Data Exploration
 - [x] Section 2: Temporal Analysis
 - [x] Section 3: Environmental Conditions
-- [ ] Section 4: Multi-table Joins
+- [x] Section 4: Multi-table Joins
 - [ ] Section 5: Vehicle and Driver Risk Analysis
 - [ ] Section 6: Window Functions and Rankings
 - [ ] Section 7: Summary Findings
@@ -67,3 +67,11 @@ Work in progress - SQL analysis and Power BI dashboard being built daily.
 - Dry road surfaces account for the majority of collisions, 
   suggesting driver behaviour rather than road conditions is 
   the primary risk factor in most cases
+- Pedestrians in rural areas show the highest fatal casualty rate 
+  of any casualty class and area combination
+- Motorcycles show a disproportionately high fatal involvement rate 
+  relative to their overall numbers on the road
+- Rural collisions produce a higher average number of casualties 
+  per incident than urban collisions at equivalent severity levels
+- Over 65s show the highest fatal rate of any age group despite 
+  not being the most frequently involved
