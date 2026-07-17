@@ -269,3 +269,169 @@ SELECT
     CASE light_conditions
         WHEN 1 THEN 'Daylight'
         WHEN 4 THEN
+
+-- ============================================================
+-- SECTION 4: MULTI-TABLE JOIN ANALYSIS
+-- Combining collision, casualty, and vehicle data
+-- to build a complete picture of each incident
+-- ============================================================
+
+-- 4.1 Join all three tables to create a unified incident view
+-- Foundation query used to support further analysis
+SELECT
+    c.collision_index,
+    c.date,
+    c.day_of_week,
+    c.time,
+    CASE c.collision_severity
+        WHEN 1 THEN 'Fatal'
+        WHEN 2 THEN 'Serious'
+        WHEN 3 THEN 'Slight'
+    END AS collision_severity,
+    CASE c.urban_or_rural_area
+        WHEN 1 THEN 'Urban'
+        WHEN 2 THEN 'Rural'
+    END AS area_type,
+    c.speed_limit,
+    CASE c.weather_conditions
+        WHEN 1 THEN 'Fine'
+        WHEN 2 THEN 'Raining'
+        WHEN 7 THEN 'Fog or Mist'
+        ELSE 'Other'
+    END AS weather,
+    CASE ca.casualty_severity
+        WHEN 1 THEN 'Fatal'
+        WHEN 2 THEN 'Serious'
+        WHEN 3 THEN 'Slight'
+    END AS casualty_severity,
+    CASE ca.casualty_class
+        WHEN 1 THEN 'Driver or Rider'
+        WHEN 2 THEN 'Passenger'
+        WHEN 3 THEN 'Pedestrian'
+    END AS casualty_class,
+    ca.age_of_casualty,
+    CASE ca.sex_of_casualty
+        WHEN 1 THEN 'Male'
+        WHEN 2 THEN 'Female'
+        ELSE 'Unknown'
+    END AS sex_of_casualty,
+    CASE v.vehicle_type
+        WHEN 1 THEN 'Pedal Cycle'
+        WHEN 2 THEN 'Motorcycle 50cc and under'
+        WHEN 3 THEN 'Motorcycle over 50cc'
+        WHEN 5 THEN 'Bus or Coach'
+        WHEN 8 THEN 'Taxi'
+        WHEN 9 THEN 'Car'
+        WHEN 10 THEN 'Minibus'
+        WHEN 11 THEN 'Goods Vehicle'
+        WHEN 19 THEN 'Van'
+        ELSE 'Other'
+    END AS vehicle_type,
+    v.age_of_driver,
+    CASE v.sex_of_driver
+        WHEN 1 THEN 'Male'
+        WHEN 2 THEN 'Female'
+        ELSE 'Unknown'
+    END AS sex_of_driver
+FROM collisions c
+LEFT JOIN casualties ca ON ca.collision_index = c.collision_index
+LEFT JOIN vehicles v ON v.collision_index = c.collision_index
+LIMIT 100;
+
+-- 4.2 Fatal casualties by casualty type and area
+-- Joining collision and casualty tables to understand
+-- who is most at risk in fatal incidents
+SELECT
+    CASE ca.casualty_class
+        WHEN 1 THEN 'Driver or Rider'
+        WHEN 2 THEN 'Passenger'
+        WHEN 3 THEN 'Pedestrian'
+    END AS casualty_class,
+    CASE c.urban_or_rural_area
+        WHEN 1 THEN 'Urban'
+        WHEN 2 THEN 'Rural'
+    END AS area_type,
+    COUNT(*) AS total_casualties,
+    SUM(CASE WHEN ca.casualty_severity = 1 THEN 1 ELSE 0 END) AS fatal,
+    SUM(CASE WHEN ca.casualty_severity = 2 THEN 1 ELSE 0 END) AS serious,
+    ROUND(SUM(CASE WHEN ca.casualty_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct
+FROM casualties ca
+JOIN collisions c ON c.collision_index = ca.collision_index
+WHERE ca.casualty_class IN (1, 2, 3)
+GROUP BY ca.casualty_class, c.urban_or_rural_area
+ORDER BY fatal_rate_pct DESC;
+
+-- 4.3 Average casualties per collision by severity and area
+-- Joining collision and casualty to understand incident scale
+SELECT
+    CASE c.collision_severity
+        WHEN 1 THEN 'Fatal'
+        WHEN 2 THEN 'Serious'
+        WHEN 3 THEN 'Slight'
+    END AS collision_severity,
+    CASE c.urban_or_rural_area
+        WHEN 1 THEN 'Urban'
+        WHEN 2 THEN 'Rural'
+    END AS area_type,
+    COUNT(DISTINCT c.collision_index) AS total_collisions,
+    COUNT(ca.casualty_reference) AS total_casualties,
+    ROUND(COUNT(ca.casualty_reference) * 1.0 / COUNT(DISTINCT c.collision_index), 2) AS avg_casualties_per_collision
+FROM collisions c
+LEFT JOIN casualties ca ON ca.collision_index = c.collision_index
+GROUP BY c.collision_severity, c.urban_or_rural_area
+ORDER BY c.collision_severity, c.urban_or_rural_area;
+
+-- 4.4 Vehicle type involvement in fatal collisions
+-- Joining collision and vehicle tables to identify
+-- which vehicle types are most involved in fatal incidents
+SELECT
+    CASE v.vehicle_type
+        WHEN 1 THEN 'Pedal Cycle'
+        WHEN 2 THEN 'Motorcycle 50cc and under'
+        WHEN 3 THEN 'Motorcycle over 50cc'
+        WHEN 5 THEN 'Bus or Coach'
+        WHEN 8 THEN 'Taxi'
+        WHEN 9 THEN 'Car'
+        WHEN 10 THEN 'Minibus'
+        WHEN 11 THEN 'Goods Vehicle'
+        WHEN 19 THEN 'Van'
+        ELSE 'Other'
+    END AS vehicle_type,
+    COUNT(*) AS total_vehicles_involved,
+    SUM(CASE WHEN c.collision_severity = 1 THEN 1 ELSE 0 END) AS involved_in_fatal,
+    ROUND(SUM(CASE WHEN c.collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_involvement_pct
+FROM vehicles v
+JOIN collisions c ON c.collision_index = v.collision_index
+WHERE v.vehicle_type NOT IN (-1, 98)
+GROUP BY v.vehicle_type
+HAVING COUNT(*) >= 100
+ORDER BY fatal_involvement_pct DESC;
+
+-- 4.5 Age group and casualty severity
+-- Joining all three tables to understand which age groups
+-- suffer the most serious casualties and in what vehicle type
+WITH age_bands AS (
+    SELECT
+        ca.collision_index,
+        ca.casualty_severity,
+        ca.age_of_casualty,
+        CASE
+            WHEN ca.age_of_casualty BETWEEN 0 AND 15 THEN '0 to 15'
+            WHEN ca.age_of_casualty BETWEEN 16 AND 25 THEN '16 to 25'
+            WHEN ca.age_of_casualty BETWEEN 26 AND 45 THEN '26 to 45'
+            WHEN ca.age_of_casualty BETWEEN 46 AND 65 THEN '46 to 65'
+            WHEN ca.age_of_casualty > 65 THEN 'Over 65'
+            ELSE 'Unknown'
+        END AS age_group
+    FROM casualties ca
+    WHERE ca.age_of_casualty >= 0
+)
+SELECT
+    ab.age_group,
+    COUNT(*) AS total_casualties,
+    SUM(CASE WHEN ab.casualty_severity = 1 THEN 1 ELSE 0 END) AS fatal,
+    SUM(CASE WHEN ab.casualty_severity = 2 THEN 1 ELSE 0 END) AS serious,
+    ROUND(SUM(CASE WHEN ab.casualty_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct
+FROM age_bands ab
+GROUP BY ab.age_group
+ORDER BY fatal_rate_pct DESC;
