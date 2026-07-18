@@ -435,3 +435,140 @@ SELECT
 FROM age_bands ab
 GROUP BY ab.age_group
 ORDER BY fatal_rate_pct DESC;
+
+-- ============================================================
+-- SECTION 5: VEHICLE AND DRIVER RISK ANALYSIS
+-- Which vehicle types, driver profiles, and road characteristics
+-- present the highest risk of fatal outcomes?
+-- Answering Business Question 2
+-- ============================================================
+
+-- 5.1 Fatal rate by vehicle type and road type
+-- 1=Roundabout, 2=One way, 3=Dual carriageway,
+-- 6=Single carriageway, 7=Slip road, 9=Unknown
+SELECT
+    CASE v.vehicle_type
+        WHEN 1 THEN 'Pedal Cycle'
+        WHEN 2 THEN 'Motorcycle 50cc and under'
+        WHEN 3 THEN 'Motorcycle over 50cc'
+        WHEN 5 THEN 'Bus or Coach'
+        WHEN 9 THEN 'Car'
+        WHEN 11 THEN 'Goods Vehicle'
+        WHEN 19 THEN 'Van'
+        ELSE 'Other'
+    END AS vehicle_type,
+    CASE c.road_type
+        WHEN 1 THEN 'Roundabout'
+        WHEN 2 THEN 'One Way Street'
+        WHEN 3 THEN 'Dual Carriageway'
+        WHEN 6 THEN 'Single Carriageway'
+        WHEN 7 THEN 'Slip Road'
+        ELSE 'Other'
+    END AS road_type,
+    COUNT(*) AS total_incidents,
+    SUM(CASE WHEN c.collision_severity = 1 THEN 1 ELSE 0 END) AS fatal,
+    ROUND(SUM(CASE WHEN c.collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct
+FROM vehicles v
+JOIN collisions c ON c.collision_index = v.collision_index
+WHERE v.vehicle_type NOT IN (-1, 98)
+AND c.road_type NOT IN (-1, 9)
+GROUP BY v.vehicle_type, c.road_type
+HAVING COUNT(*) >= 50
+ORDER BY fatal_rate_pct DESC
+LIMIT 15;
+
+-- 5.2 Driver age group and fatal involvement rate
+-- Understanding which driver age groups are highest risk
+WITH driver_ages AS (
+    SELECT
+        v.collision_index,
+        v.age_of_driver,
+        CASE
+            WHEN v.age_of_driver BETWEEN 17 AND 24 THEN '17 to 24'
+            WHEN v.age_of_driver BETWEEN 25 THEN '25 to 34'
+            WHEN v.age_of_driver BETWEEN 35 AND 44 THEN '35 to 44'
+            WHEN v.age_of_driver BETWEEN 45 AND 54 THEN '45 to 54'
+            WHEN v.age_of_driver BETWEEN 55 AND 64 THEN '55 to 64'
+            WHEN v.age_of_driver >= 65 THEN '65 and over'
+            ELSE 'Unknown'
+        END AS age_group
+    FROM vehicles v
+    WHERE v.age_of_driver >= 17
+)
+SELECT
+    da.age_group,
+    COUNT(*) AS total_drivers,
+    SUM(CASE WHEN c.collision_severity = 1 THEN 1 ELSE 0 END) AS involved_in_fatal,
+    ROUND(SUM(CASE WHEN c.collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_involvement_pct
+FROM driver_ages da
+JOIN collisions c ON c.collision_index = da.collision_index
+GROUP BY da.age_group
+ORDER BY fatal_involvement_pct DESC;
+
+-- 5.3 Gender and fatal involvement
+-- Comparing male and female driver involvement in fatal collisions
+SELECT
+    CASE v.sex_of_driver
+        WHEN 1 THEN 'Male'
+        WHEN 2 THEN 'Female'
+        ELSE 'Unknown'
+    END AS driver_gender,
+    COUNT(*) AS total_drivers,
+    SUM(CASE WHEN c.collision_severity = 1 THEN 1 ELSE 0 END) AS involved_in_fatal,
+    SUM(CASE WHEN c.collision_severity = 2 THEN 1 ELSE 0 END) AS involved_in_serious,
+    ROUND(SUM(CASE WHEN c.collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct
+FROM vehicles v
+JOIN collisions c ON c.collision_index = v.collision_index
+WHERE v.sex_of_driver IN (1, 2)
+GROUP BY v.sex_of_driver
+ORDER BY fatal_rate_pct DESC;
+
+-- 5.4 Speed limit and vehicle type combined risk
+-- Identifying the highest risk combinations for policy intervention
+SELECT
+    CASE v.vehicle_type
+        WHEN 1 THEN 'Pedal Cycle'
+        WHEN 3 THEN 'Motorcycle'
+        WHEN 9 THEN 'Car'
+        WHEN 11 THEN 'Goods Vehicle'
+        WHEN 19 THEN 'Van'
+        ELSE 'Other'
+    END AS vehicle_type,
+    c.speed_limit,
+    COUNT(*) AS total_incidents,
+    SUM(CASE WHEN c.collision_severity = 1 THEN 1 ELSE 0 END) AS fatal,
+    ROUND(SUM(CASE WHEN c.collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct
+FROM vehicles v
+JOIN collisions c ON c.collision_index = v.collision_index
+WHERE v.vehicle_type IN (1, 3, 9, 11, 19)
+AND c.speed_limit > 0
+GROUP BY v.vehicle_type, c.speed_limit
+HAVING COUNT(*) >= 30
+ORDER BY fatal_rate_pct DESC
+LIMIT 15;
+
+-- 5.5 Road type and urban rural split for intervention prioritisation
+-- Identifying where safety interventions would have most impact
+SELECT
+    CASE c.road_type
+        WHEN 1 THEN 'Roundabout'
+        WHEN 2 THEN 'One Way Street'
+        WHEN 3 THEN 'Dual Carriageway'
+        WHEN 6 THEN 'Single Carriageway'
+        WHEN 7 THEN 'Slip Road'
+        ELSE 'Other'
+    END AS road_type,
+    CASE c.urban_or_rural_area
+        WHEN 1 THEN 'Urban'
+        WHEN 2 THEN 'Rural'
+    END AS area_type,
+    COUNT(*) AS total_collisions,
+    SUM(CASE WHEN c.collision_severity = 1 THEN 1 ELSE 0 END) AS fatal,
+    SUM(CASE WHEN c.collision_severity = 2 THEN 1 ELSE 0 END) AS serious,
+    ROUND(SUM(CASE WHEN c.collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct,
+    ROUND(SUM(CASE WHEN c.collision_severity IN (1,2) THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1) AS serious_or_fatal_pct
+FROM collisions c
+WHERE c.road_type NOT IN (-1, 9)
+GROUP BY c.road_type, c.urban_or_rural_area
+HAVING COUNT(*) >= 50
+ORDER BY fatal_rate_pct DESC;
