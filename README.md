@@ -38,7 +38,7 @@ Work in progress - SQL analysis and Power BI dashboard being built daily.
 - [x] Section 2: Temporal Analysis
 - [x] Section 3: Environmental Conditions
 - [x] Section 4: Multi-table Joins
-- [ ] Section 5: Vehicle and Driver Risk Analysis
+- [x] Section 5: Vehicle and Driver Risk Analysis
 - [ ] Section 6: Window Functions and Rankings
 - [ ] Section 7: Summary Findings
 
@@ -75,3 +75,15 @@ Work in progress - SQL analysis and Power BI dashboard being built daily.
   per incident than urban collisions at equivalent severity levels
 - Over 65s show the highest fatal rate of any age group despite 
   not being the most frequently involved
+- Motorcycles on dual carriageways and single carriageways at 
+  high speed limits show the highest fatal involvement rates 
+  of any vehicle and road type combination
+- Drivers aged 17 to 24 and those aged 65 and over show 
+  elevated fatal involvement rates compared to middle age groups
+- Male drivers are involved in a significantly higher proportion 
+  of fatal collisions than female drivers
+- Rural single carriageways present the highest combined risk 
+  of fatal and serious outcomes of any road type and area combination
+- Pedal cycles at 60mph speed limit roads show a disproportionately 
+  high fatal rate highlighting the vulnerability of cyclists on 
+  high speed rural roads
