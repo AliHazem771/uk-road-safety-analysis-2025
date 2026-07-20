@@ -723,3 +723,66 @@ SELECT
 FROM hourly_stats
 ORDER BY fatal_collisions DESC
 LIMIT 15;
+
+-- ============================================================
+-- SECTION 7: SUMMARY FINDINGS
+-- Key metrics that answer both business questions
+-- ============================================================
+
+-- 7.1 Overall dataset summary
+SELECT
+    COUNT(*) AS total_collisions,
+    SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) AS fatal_collisions,
+    SUM(CASE WHEN collision_severity = 2 THEN 1 ELSE 0 END) AS serious_collisions,
+    SUM(CASE WHEN collision_severity = 3 THEN 1 ELSE 0 END) AS slight_collisions,
+    ROUND(SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct,
+    MIN(date) AS period_start,
+    MAX(date) AS period_end
+FROM collisions;
+
+-- 7.2 Answer to Business Question 1
+-- When and where do the most serious collisions occur?
+SELECT
+    CASE day_of_week
+        WHEN 1 THEN 'Sunday'
+        WHEN 2 THEN 'Monday'
+        WHEN 3 THEN 'Tuesday'
+        WHEN 4 THEN 'Wednesday'
+        WHEN 5 THEN 'Thursday'
+        WHEN 6 THEN 'Friday'
+        WHEN 7 THEN 'Saturday'
+    END AS day_name,
+    CASE urban_or_rural_area
+        WHEN 1 THEN 'Urban'
+        WHEN 2 THEN 'Rural'
+    END AS area_type,
+    COUNT(*) AS total_collisions,
+    SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) AS fatal,
+    ROUND(SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct
+FROM collisions
+GROUP BY day_of_week, urban_or_rural_area
+ORDER BY fatal_rate_pct DESC
+LIMIT 10;
+
+-- 7.3 Answer to Business Question 2
+-- Which vehicles and road characteristics present highest fatal risk?
+SELECT
+    CASE road_type
+        WHEN 1 THEN 'Roundabout'
+        WHEN 2 THEN 'One Way Street'
+        WHEN 3 THEN 'Dual Carriageway'
+        WHEN 6 THEN 'Single Carriageway'
+        WHEN 7 THEN 'Slip Road'
+        ELSE 'Other'
+    END AS road_type,
+    speed_limit,
+    COUNT(*) AS total_collisions,
+    SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) AS fatal,
+    ROUND(SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct
+FROM collisions
+WHERE road_type NOT IN (-1, 9)
+AND speed_limit > 0
+GROUP BY road_type, speed_limit
+HAVING COUNT(*) >= 50
+ORDER BY fatal_rate_pct DESC
+LIMIT 10;
