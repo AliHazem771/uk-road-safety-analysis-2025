@@ -572,3 +572,154 @@ WHERE c.road_type NOT IN (-1, 9)
 GROUP BY c.road_type, c.urban_or_rural_area
 HAVING COUNT(*) >= 50
 ORDER BY fatal_rate_pct DESC;
+
+-- ============================================================
+-- SECTION 6: WINDOW FUNCTIONS AND RANKINGS
+-- Advanced analysis using ranking, cumulative totals,
+-- and comparative analytics across the dataset
+-- ============================================================
+
+-- 6.1 Rank police force areas by fatal collision rate
+-- Identifies which regions have the highest proportion
+-- of fatal collisions relative to their total incidents
+WITH force_stats AS (
+    SELECT
+        police_force,
+        COUNT(*) AS total_collisions,
+        SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) AS fatal_collisions,
+        ROUND(SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct
+    FROM collisions
+    GROUP BY police_force
+    HAVING COUNT(*) >= 100
+)
+SELECT
+    police_force,
+    total_collisions,
+    fatal_collisions,
+    fatal_rate_pct,
+    RANK() OVER (ORDER BY fatal_rate_pct DESC) AS rank_by_fatal_rate,
+    RANK() OVER (ORDER BY total_collisions DESC) AS rank_by_volume
+FROM force_stats
+ORDER BY fatal_rate_pct DESC
+LIMIT 15;
+
+-- 6.2 Running total of fatal collisions by month
+-- Shows cumulative fatality progression across 2025
+WITH monthly_fatals AS (
+    SELECT
+        CASE CAST(SUBSTR(date, 4, 2) AS INTEGER)
+            WHEN 1 THEN 'January'
+            WHEN 2 THEN 'February'
+            WHEN 3 THEN 'March'
+            WHEN 4 THEN 'April'
+            WHEN 5 THEN 'May'
+        END AS month_name,
+        CAST(SUBSTR(date, 4, 2) AS INTEGER) AS month_num,
+        COUNT(*) AS total_collisions,
+        SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) AS fatal_collisions
+    FROM collisions
+    GROUP BY month_num
+)
+SELECT
+    month_name,
+    total_collisions,
+    fatal_collisions,
+    SUM(fatal_collisions) OVER (
+        ORDER BY month_num
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS cumulative_fatals,
+    SUM(total_collisions) OVER (
+        ORDER BY month_num
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS cumulative_collisions
+FROM monthly_fatals
+ORDER BY month_num;
+
+-- 6.3 Compare each speed limit zone against the national average fatal rate
+-- Shows which speed limit zones perform above or below average
+WITH speed_stats AS (
+    SELECT
+        speed_limit,
+        COUNT(*) AS total_collisions,
+        SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) AS fatal_collisions,
+        ROUND(SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) AS fatal_rate_pct
+    FROM collisions
+    WHERE speed_limit > 0
+    GROUP BY speed_limit
+)
+SELECT
+    speed_limit,
+    total_collisions,
+    fatal_collisions,
+    fatal_rate_pct,
+    ROUND(AVG(fatal_rate_pct) OVER (), 2) AS national_avg_fatal_rate,
+    ROUND(fatal_rate_pct - AVG(fatal_rate_pct) OVER (), 2) AS variance_from_average,
+    RANK() OVER (ORDER BY fatal_rate_pct DESC) AS risk_rank
+FROM speed_stats
+ORDER BY risk_rank;
+
+-- 6.4 Cumulative share of casualties by casualty type
+-- Shows concentration of casualties across different groups
+WITH casualty_totals AS (
+    SELECT
+        CASE casualty_type
+            WHEN 0 THEN 'Pedestrian'
+            WHEN 1 THEN 'Cyclist'
+            WHEN 9 THEN 'Car Occupant'
+            WHEN 3 THEN 'Motorcycle Rider'
+            WHEN 5 THEN 'Bus Passenger'
+            WHEN 11 THEN 'Goods Vehicle Occupant'
+            WHEN 19 THEN 'Van Occupant'
+            ELSE 'Other'
+        END AS casualty_type_label,
+        COUNT(*) AS total_casualties,
+        SUM(CASE WHEN casualty_severity = 1 THEN 1 ELSE 0 END) AS fatal
+    FROM casualties
+    GROUP BY casualty_type
+)
+SELECT
+    casualty_type_label,
+    total_casualties,
+    fatal,
+    RANK() OVER (ORDER BY total_casualties DESC) AS volume_rank,
+    RANK() OVER (ORDER BY fatal DESC) AS fatal_rank,
+    ROUND(SUM(total_casualties) OVER (
+        ORDER BY total_casualties DESC
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) * 100.0 / SUM(total_casualties) OVER (), 1) AS cumulative_pct
+FROM casualty_totals
+ORDER BY volume_rank;
+
+-- 6.5 Day and hour risk index ranked against daily average
+-- Identifies which specific hours on which days are most dangerous
+-- relative to the typical volume for that day
+WITH hourly_stats AS (
+    SELECT
+        CASE day_of_week
+            WHEN 1 THEN 'Sunday'
+            WHEN 2 THEN 'Monday'
+            WHEN 3 THEN 'Tuesday'
+            WHEN 4 THEN 'Wednesday'
+            WHEN 5 THEN 'Thursday'
+            WHEN 6 THEN 'Friday'
+            WHEN 7 THEN 'Saturday'
+        END AS day_name,
+        day_of_week,
+        CAST(SUBSTR(time, 1, 2) AS INTEGER) AS hour_of_day,
+        COUNT(*) AS collisions,
+        SUM(CASE WHEN collision_severity = 1 THEN 1 ELSE 0 END) AS fatal_collisions
+    FROM collisions
+    WHERE time IS NOT NULL AND time != ''
+    GROUP BY day_of_week, hour_of_day
+)
+SELECT
+    day_name,
+    hour_of_day,
+    collisions,
+    fatal_collisions,
+    RANK() OVER (PARTITION BY day_of_week ORDER BY fatal_collisions DESC) AS rank_within_day,
+    ROUND(AVG(collisions) OVER (PARTITION BY day_of_week), 1) AS avg_hourly_collisions_that_day,
+    ROUND(collisions * 1.0 / AVG(collisions) OVER (PARTITION BY day_of_week), 2) AS risk_index
+FROM hourly_stats
+ORDER BY fatal_collisions DESC
+LIMIT 15;
