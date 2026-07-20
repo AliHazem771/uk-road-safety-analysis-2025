@@ -55,7 +55,7 @@ weather and light, urban versus rural split, and fatal rate by speed limit.
 Covers fatal rate by vehicle type, casualties by age group, collisions by 
 speed limit, driver gender analysis, and fatal rate by road type and area.
 
-![Page 2](dashboard/Page2_Vehicle_Driver_Risk.png)
+![Page 2](Dashboard/Page2_Vehicle_Driver_Risk.png)
 
 Screenshots and PDF export available in the dashboard folder.
 
