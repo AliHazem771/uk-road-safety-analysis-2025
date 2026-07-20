@@ -48,7 +48,7 @@ The dashboard contains two pages, one per business question.
 **Page 1 — When and Where**
 Covers collision timing by day and hour, environmental conditions including 
 weather and light, urban versus rural split, and fatal rate by speed limit.
-![Page 1](dashboard/Page1_When_and_Where.png)
+![Page 1](dashbaord/Page1_When_and _Where.png .png)
 
 **Page 2 — Vehicle and Driver Risk**
 Covers fatal rate by vehicle type, casualties by age group, collisions by 
