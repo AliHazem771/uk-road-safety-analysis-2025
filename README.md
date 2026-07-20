@@ -39,7 +39,7 @@ Work in progress - SQL analysis and Power BI dashboard being built daily.
 - [x] Section 3: Environmental Conditions
 - [x] Section 4: Multi-table Joins
 - [x] Section 5: Vehicle and Driver Risk Analysis
-- [ ] Section 6: Window Functions and Rankings
+- [x] Section 6: Window Functions and Rankings
 - [ ] Section 7: Summary Findings
 
 ## Key Findings So Far
@@ -87,3 +87,16 @@ Work in progress - SQL analysis and Power BI dashboard being built daily.
 - Pedal cycles at 60mph speed limit roads show a disproportionately 
   high fatal rate highlighting the vulnerability of cyclists on 
   high speed rural roads
+- Significant variation exists in fatal collision rates across 
+  different police force areas, suggesting regional differences 
+  in road risk that warrant further investigation
+- Cumulative fatal collisions show a consistent monthly progression 
+  with no single month accounting for a disproportionate share
+- Speed limit zones of 60mph and 70mph show fatal rates well above 
+  the national average while 20mph and 30mph zones sit significantly 
+  below it
+- Car occupants represent the highest volume casualty group however 
+  motorcyclists and pedestrians show disproportionately high fatal 
+  rates relative to their numbers
+- Friday afternoon and Saturday late night show the highest risk 
+  index scores when controlling for typical daily collision volumes
